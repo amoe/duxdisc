@@ -5,6 +5,14 @@
 	     (ice-9 ftw)
 	     (ice-9 match))
 
+(define (system/wrapped cmd)
+  (check-exit-code (system cmd) cmd))
+
+; cmd only used for information
+(define (check-exit-code result cmd)
+  (let ((exit-code (status:exit-val result)))
+    (when (not (= exit-code 0))
+      (error "command returned unsuccessful status code" cmd exit-code))))
 
 (define find-unsafe
   (make-regexp "[^[:alnum:]_@%+=:,./-]"))
@@ -35,8 +43,7 @@
 (define (command->string command)
   (let* ((pipe (open-input-pipe command))
 	 (result (slurp pipe)))
- ;   (display result)
-    (close-pipe pipe)
+    (check-exit-code (close-pipe pipe) command)
     result))
 
 (define (chomp string)
@@ -59,7 +66,7 @@
 
 (define (unzip path)
   (let ((target-dir (basename path ".zip")))
-    (system (string-append "unzip -o -d " (shell-quote target-dir) " "
+    (system/wrapped (string-append "unzip -o -d " (shell-quote target-dir) " "
 			   (shell-quote path)))
     target-dir))
 
@@ -96,7 +103,7 @@
 
 (define (decode file)
   (let ((output-file (string-append file ".wav")))
-    (system (string-append "ffmpeg -y -i " (shell-quote file) " "
+    (system/wrapped (string-append "ffmpeg -y -i " (shell-quote file) " "
 			   (shell-quote output-file)))
     output-file))
 
@@ -107,7 +114,7 @@
   (define bits 16)
   
   (let ((output-file (string-append file ".wav-fixed.wav")))
-    (system (string-append "sox -G " (shell-quote file)
+    (system/wrapped (string-append "sox -G " (shell-quote file)
 			   " -r " (number->string sample-rate)
 			   " -c " (number->string channels)
 			   " -e " encoding
@@ -118,7 +125,7 @@
 
 (define (burn files)
   (let ((all-files (string-join (map shell-quote files))))
-    (display (string-append "wodim -v -sao speed=1 -audio -pad -copy "
+    (system/wrapped (string-append "wodim -v -sao speed=1 -audio -pad -copy "
 			    all-files))))
 (define (disk-usage name)
 ;  (display name)
@@ -130,17 +137,22 @@
     (string->number (chomp (command->string command)))))
   
 (define (main . args)
-  (let ((item (maybe-unzip (first args))))
+  (let ((burn-list (apply append (map (lambda (name)
+  
+  (let ((item (maybe-unzip name)))
     (let ((files (scan-tree item)))
-      (let ((count (milliseconds->minutes (count-files files))))
-	(when (> count 80)
-	  (error "too large for disc"))
-	(when (< count 40)
-	  (error "too small for disc"))
-	(let ((decoded (map decode files)))
+      (let ((decoded (map decode files)))
 	  (let ((fixed (map fix-format decoded)))
 	    (write fixed)
-	    (burn (sort fixed string<))))))))
+	    (sort fixed string<))))))
+       args))))
+    (let ((count (exact->inexact (milliseconds->minutes (count-files burn-list)))))
+      (when (> count 80)
+        (error "too large for disc" count))
+      (when (< count 40)
+        (error "too small for disc" count))
+
+      (burn burn-list))))
 
 (define (main2)
   (let ((usages (map (lambda (dir)
@@ -152,7 +164,8 @@
 			  5)))))
 
 
-(apply main2 (cdr (program-arguments)))
+
+(apply main (cdr (program-arguments)))
 
 ;; (write (exact->inexact (milliseconds->minutes
 ;; 	(get-duration (second (program-arguments))))))
