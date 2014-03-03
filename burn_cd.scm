@@ -1,4 +1,5 @@
 (use-modules (srfi srfi-1)
+	     (srfi srfi-11)
 	     (ice-9 popen)
 	     (ice-9 rdelim)
 	     (ice-9 regex)
@@ -135,24 +136,41 @@
 ;    (display command)
 ;    (newline)
     (string->number (chomp (command->string command)))))
-  
-(define (main . args)
-  (let ((burn-list (apply append (map (lambda (name)
-  
+
+(define (decode-and-merge items)
+  (let loop ((items items) (burn-list '()) (remove-list '()))
+    (cond
+     ((null? items)  (values burn-list remove-list))
+     (else
+      (let-values (((burn remove) (decode-and-fix-item (car items))))
+	(loop (cdr items) (append burn burn-list) (append remove remove-list)))))))
+
+(define (decode-and-fix-item name)
   (let ((item (maybe-unzip name)))
     (let ((files (scan-tree item)))
       (let ((decoded (map decode files)))
 	  (let ((fixed (map fix-format decoded)))
 	    (write fixed)
-	    (sort fixed string<))))))
-       args))))
+	    (values (sort fixed string<)
+		    (if (not (string=? item name))
+			(list name item)
+			(list name))))))))
+			     
+
+(define (recursive-delete path)
+  (let ((command (string-append "rm -rf " (shell-quote path))))
+    (system/wrapped command)))
+  
+(define (main . args)
+  (let-values (((burn-list remove-list) (decode-and-merge args)))
     (let ((count (exact->inexact (milliseconds->minutes (count-files burn-list)))))
       (when (> count 80)
         (error "too large for disc" count))
       (when (< count 40)
         (error "too small for disc" count))
 
-      (burn burn-list))))
+      (burn burn-list)
+      (for-each recursive-delete remove-list))))
 
 (define (main2)
   (let ((usages (map (lambda (dir)
@@ -162,8 +180,6 @@
 				       (string=? x ".."))))))))
     (write (map car (take (sort usages (lambda (x y) (> (cdr x) (cdr y))))
 			  5)))))
-
-
 
 (apply main (cdr (program-arguments)))
 
