@@ -1,11 +1,36 @@
 (use-modules (srfi srfi-1)
+	     (srfi srfi-9)
 	     (srfi srfi-11)
 	     (ice-9 popen)
 	     (ice-9 rdelim)
 	     (ice-9 regex)
 	     (ice-9 ftw)
 	     (ice-9 match)
+	     (md5)
 	     (os-interface))
+
+(define-record-type <options>
+  (make-options temporary-output-dir)
+  options?
+  (temporary-output-dir options:temporary-output-dir options:set-temporary-output-dir!))
+
+(define (setup-environment)
+  (make-options "/tmp/burn_cd"))
+
+(define *the-environment* (setup-environment))
+
+(define (original-path->output-path original-path phase extension)
+  ; create the output dir if it doesn't exist
+  (catch #t
+	 (lambda () (mkdir (options:temporary-output-dir *the-environment*)))
+	 (lambda (key . parameters) 'ignored))
+  
+  (string-append (options:temporary-output-dir *the-environment*)
+		 "/"
+		 (md5 (open-input-string original-path))
+		 "-"
+		 phase
+		 extension))
 
 (define (get-duration path)
   (let ((full-command
@@ -30,7 +55,7 @@
   (apply + (map get-duration files)))
 
 (define (unzip path)
-  (let ((target-dir (basename path ".zip")))
+  (let ((target-dir (original-path->output-path path "unzipped" "d")))
     (system/wrapped (string-append "unzip -o -d " (shell-quote target-dir) " "
 			   (shell-quote path)))
     target-dir))
@@ -67,7 +92,7 @@
 			   (cdr (cdr tree)))))))))
 
 (define (decode file)
-  (let ((output-file (string-append file ".wav")))
+  (let ((output-file (original-path->output-path file "decode" ".wav")))
     (system/wrapped (string-append "ffmpeg -y -i " (shell-quote file) " "
 			   (shell-quote output-file)))
     output-file))
@@ -77,9 +102,10 @@
   (define channels 2)
   (define encoding "signed-integer")
   (define bits 16)
-  
-  (let ((output-file (string-append file ".wav-fixed.wav")))
-    (system/wrapped (string-append "sox -G " (shell-quote file)
+
+  (let ((input-file (original-path->output-path file "decode" ".wav"))
+	(output-file (original-path->output-path file "resample" ".wav")))
+    (system/wrapped (string-append "sox -G " (shell-quote input-file)
 			   " -r " (number->string sample-rate)
 			   " -c " (number->string channels)
 			   " -e " encoding
@@ -90,7 +116,7 @@
 
 (define (burn files)
   (let ((all-files (string-join (map shell-quote files))))
-    (system/wrapped (string-append "wodim -v -sao speed=1 -audio -pad -copy "
+    (system/wrapped (string-append "sudo wodim -v -sao speed=1 -audio -pad -copy "
 			    all-files))))
 (define (disk-usage name)
 ;  (display name)
@@ -107,17 +133,19 @@
      ((null? items)  (values burn-list remove-list))
      (else
       (let-values (((burn remove) (decode-and-fix-item (car items))))
-	(loop (cdr items) (append burn burn-list) (append remove remove-list)))))))
+	(loop (cdr items) (append burn-list burn) (append remove-list remove)))))))
 
 (define (decode-and-fix-item name)
   (let ((item (maybe-unzip name)))
     (let ((files (scan-tree item)))
       (let ((decoded (map decode files)))
-	  (let ((fixed (map fix-format decoded)))
+	  (let ((fixed (map fix-format files)))
 	    (write fixed)
-	    (values (sort fixed string<)
-		    (if (not (string=? item name))
-			(list name item)
+	    (values (map (lambda (original-path)
+			   (original-path->output-path original-path "resample" ".wav"))
+			 (sort files string<))
+		    (if (not (string=? item name))   ; if we unzipped...
+			(list name item)             
 			(list name))))))))
 			     
 
