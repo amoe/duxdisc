@@ -1,0 +1,8 @@
+Duxdisc is a program written in Guile Scheme that allows burning CDs easily from
+downloaded or ripped audio files.
+
+The aim is to make the process of creating CDs as "fire-and-forget" as possible.
+
+It may acquire some more features for DJs.
+
+![DUX used CUT!](https://raw.githubusercontent.com/amoe/duxdisc/master/misc/Spin%20Dux.gif)
