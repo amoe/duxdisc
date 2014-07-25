@@ -5,4 +5,6 @@ The aim is to make the process of creating CDs as "fire-and-forget" as possible.
 
 It may acquire some more features for DJs.
 
+Guile 2.0 is required.  The guile-lib module is also required, version 0.2.2.
+
 ![DUX used CUT!](https://raw.githubusercontent.com/amoe/duxdisc/master/misc/Spin%20Dux.gif)

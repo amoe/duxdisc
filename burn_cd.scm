@@ -189,11 +189,10 @@
 
       (burn burn-list))))
 
-
-(define (main . args)
+(define (dispatch-action args)
   (when (< (length args) 1)
-    (error "no action specified"))
-
+    (raise-user-diagnostic "no action specified"))
+  
   (let ((action (first args)))
     (cond
      ((string=? action "burn")
@@ -205,6 +204,35 @@
      (else
       (error "unknown action" action)))))
 
+(define (raise-user-diagnostic  message . args)
+  (scm-error 'user-diagnostic
+	     #f
+	     message
+	     args
+	     #f))
+
+(define (error:subr x) (first x))
+(define (error:message x) (second x))
+(define (error:args x) (third x))
+(define (error:data x) (fourth x))
+
+
+(define (main . args)
+  (catch #t
+	 (lambda () (dispatch-action args))
+	 (lambda (key . parameters)
+	   (case key
+	     ((user-diagnostic)
+	      (format (current-error-port)
+		      "fatal: ~a~%"
+		      (apply format #f
+			     (error:message parameters)
+			     (error:args parameters))))
+
+	     (else
+	      (apply scm-error key parameters))))))
+
+
 (define (action:measure . args)
   (let-values (((burn-list remove-list) (decode-and-merge args)))
     (let ((count (exact->inexact (milliseconds->minutes (count-files burn-list)))))
@@ -213,8 +241,8 @@
       (display "m.")
       (newline))))
 
-  
-(define (main2)
+; Currently disabled
+(define (integrate-disk-usage-attempt)
   (let ((usages (map (lambda (dir)
 		       (cons dir (disk-usage dir)))
 		     (scandir "."  (lambda (x)
@@ -224,6 +252,3 @@
 			  5)))))
 
 (apply main (cdr (program-arguments)))
-
-;; (write (exact->inexact (milliseconds->minutes
-;; 	(get-duration (second (program-arguments))))))
