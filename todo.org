@@ -1,0 +1,3 @@
+* Properly support listing individual files on the command line.  They should be burned in order of listing.
+
+* Extract files to a different basedir.  
