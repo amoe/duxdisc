@@ -1,3 +1,6 @@
 * Properly support listing individual files on the command line.  They should be burned in order of listing.
 
-* Extract files to a different basedir.  
+* Extract files to a different basedir.
+
+* raise-user-diagnostic should support optional exit-code argument to pass to the calling shell.
+  
