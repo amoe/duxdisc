@@ -15,7 +15,7 @@
   (temporary-output-dir options:temporary-output-dir options:set-temporary-output-dir!))
 
 (define (setup-environment)
-  (make-options "/tmp/burn_cd"))
+  (make-options (string-append (or (getenv "TMPDIR") "/tmp") "/burn_cd")))
 
 (define *the-environment* (setup-environment))
 
