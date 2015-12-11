@@ -4,3 +4,4 @@
 
 * raise-user-diagnostic should support optional exit-code argument to pass to the calling shell.
   
+* Handle unicode, like the Bubble album zip
