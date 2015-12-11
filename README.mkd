@@ -5,6 +5,12 @@ The aim is to make the process of creating CDs as "fire-and-forget" as possible.
 
 It may acquire some more features for DJs.
 
+NB: duxdisc generates large temporary files of several GB in size for
+the average disc.  It's recommended that you use an alias to set the
+value of TMPDIR to an area with more space, i.e. `TMPDIR=$HOME/tmp
+duxdisc`.  In the future a configuration file may be supported for
+this purpose.
+
 Guile 2.0 is required.  The
 [guile-lib](http://www.nongnu.org/guile-lib/) module is also required,
 version 0.2.2.
