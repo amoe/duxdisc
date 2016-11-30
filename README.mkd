@@ -5,14 +5,30 @@ The aim is to make the process of creating CDs as "fire-and-forget" as possible.
 
 It may acquire some more features for DJs.
 
+Guile 2.0 is required.  The
+[guile-lib](http://www.nongnu.org/guile-lib/) module is also required,
+version 0.2.2.
+
+The program is invoked on the command line as such.
+
+    guile burn_cd.scm burn <DIRECTORY_OR_ZIP>
+    guile burn_cd.scm burn-incoming <DIRECTORY_OR_ZIP>
+
+Duxdisc will automatically extract zipfiles, using the unzip tool, will 
+automatically decode audio files, and will do sample rate conversions if 
+necessary for the burn to CD.
+
 NB: duxdisc generates large temporary files of several GB in size for
 the average disc.  It's recommended that you use an alias to set the
 value of TMPDIR to an area with more space, i.e. `TMPDIR=$HOME/tmp
 duxdisc`.  In the future a configuration file may be supported for
 this purpose.
 
-Guile 2.0 is required.  The
-[guile-lib](http://www.nongnu.org/guile-lib/) module is also required,
-version 0.2.2.
+
+To bootstrap in Debian, you can use:
+
+    sudo aptitude install guile-2.0 guile-library
+
+External tools used are `unzip`, `mediainfo`, `ffmpeg`, and `sox`.
 
 ![DUX used CUT!](https://raw.githubusercontent.com/amoe/duxdisc/master/misc/Spin%20Dux.gif)
