@@ -7,7 +7,7 @@ It may acquire some more features for DJs.
 
 Guile 2.0 is required.  The
 [guile-lib](http://www.nongnu.org/guile-lib/) module is also required,
-version 0.2.2.
+gversion 0.2.2.  This is now available in debian under the name `guile-library`.
 
 The program is invoked on the command line as such.
 
@@ -31,4 +31,10 @@ To bootstrap in Debian, you can use:
 
 External tools used are `unzip`, `mediainfo`, `ffmpeg`, and `sox`.
 
+## Debian setup
+
+aptitude install guile-2.0 guile-2.0-libs guile-library
+
+
 ![DUX used CUT!](https://raw.githubusercontent.com/amoe/duxdisc/master/misc/Spin%20Dux.gif)
+
